@@ -27,7 +27,7 @@
   --input: 20 5.9% 90%;
   --ring: 20 14.3% 4.1%;
   --radius: 0.5rem;
-  --custom-gold: #d4af37; /* Couleur d'origine restaurée */
+  --custom-gold: #ffd000;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -91,7 +91,7 @@
   }
   body {
     color: rgb(var(--foreground-rgb));
-    font-family: "Caviar Dreams", sans-serif; /* Utilisation de Caviar Dreams */
+    font-family: "Caviar Dreams", sans-serif;
     @apply bg-background text-foreground;
   }
 }
@@ -102,11 +102,11 @@
   button,
   select,
   textarea {
-    font-family: "Caviar Dreams", sans-serif !important; /* Utilisation de Caviar Dreams */
+    font-family: "Caviar Dreams", sans-serif !important;
   }
 
   .font-sans {
-    font-family: "Caviar Dreams", sans-serif !important; /* Utilisation de Caviar Dreams */
+    font-family: "Caviar Dreams", sans-serif !important;
   }
 
   .page-title {
@@ -131,13 +131,13 @@
 
   /* Assurer que les tables ont un rendu vectoriel */
   table {
-    transform: translateZ(0); /* Activer l'accélération matérielle */
+    transform: translateZ(0);
   }
 
   /* Améliorer le rendu des bordures */
   .border-collapse {
     border-collapse: collapse;
-    vector-effect: non-scaling-stroke; /* Empêche les bordures de s'épaissir lors du zoom */
+    vector-effect: non-scaling-stroke;
   }
 
   /* Augmenter la taille des polices dans les tables */
@@ -157,10 +157,14 @@
   .table-container th {
     font-size: 16px;
     font-weight: 600;
+    padding: 10px;
+    line-height: 1.2;
   }
 
   .table-container td {
     font-size: 16px;
+    padding: 10px;
+    line-height: 1.2;
   }
 
   .table-container input,
@@ -169,20 +173,7 @@
     font-size: 16px;
   }
 
-  /* Styles pour les en-têtes de colonnes */
-  .table-container th {
-    padding: 10px;
-    line-height: 1.2;
-  }
-
-  /* Styles pour les cellules */
-  .table-container td {
-    padding: 10px;
-    line-height: 1.2;
-  }
-
   /* Techniques pour améliorer le rendu comme Miro */
-  /* Ces styles aident à obtenir un rendu vectoriel de haute qualité */
   @supports (font-smooth: auto) {
     html {
       font-smooth: auto;
@@ -207,7 +198,7 @@
   }
 
   .shadow-inner-gold {
-    box-shadow: inset 0 0 0 1px #d4af37; /* Couleur d'origine restaurée */
+    box-shadow: inset 0 0 0 1px #ffd000;
   }
 }
 

@@ -7,7 +7,6 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { AllotissementTable } from "./AllotissementTable"
 import { AppelOffresTable } from "./AppelOffresTable"
 import { ComptabiliteChantierTable } from "./ComptabiliteChantierTable"
-import { SuiviChantierTable } from "./SuiviChantierTable"
 import { ConsultationEntreprises } from "./ConsultationEntreprises"
 import { LeftSidebar } from "./LeftSidebar"
 import { PvrSection } from "./PvrSection"
@@ -15,7 +14,9 @@ import { TaskList } from "./TaskList"
 import { Button } from "@/components/ui/button"
 import { RightSidebar } from "./RightSidebar"
 import { ProjectInfoModal, type ProjectInfo } from "./ProjectInfoModal"
+import { IntervenantsModal } from "./IntervenantsModal"
 import { useProjectInfo } from "@/hooks/useProjectInfo"
+import { DetTableSection } from "./DetTableSection"
 
 type TableData = {
   id: string
@@ -61,9 +62,14 @@ type CsvData = {
 type InfiniteCanvasProps = {
   tables?: TableData[]
   projectName?: string
+  projectId?: string
 }
 
-export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: InfiniteCanvasProps) => {
+const InfiniteCanvas = ({
+  tables = [],
+  projectName = "Nom du Projet",
+  projectId = "project-1",
+}: InfiniteCanvasProps) => {
   const [lots, setLots] = useState<Lot[]>([])
   const [mieuxDisantSelections, setMieuxDisantSelections] = useState<MieuxDisantSelection>({})
   const [appelOffresEntries, setAppelOffresEntries] = useState<AppelOffresEntry[]>([])
@@ -72,25 +78,59 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
   const [isPanningEnabled, setIsPanningEnabled] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
   const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false)
-  const { projectInfo, saveProjectInfo } = useProjectInfo("project-1") // Remplacer "project-1" par l'ID réel du projet
+  const [isIntervenantsModalOpen, setIsIntervenantsModalOpen] = useState(false)
+  const { projectInfo, saveProjectInfo } = useProjectInfo(projectId)
 
   // Références pour les inputs de fichiers
   const fileInputRefConsultation = useRef<HTMLInputElement>(null)
   const fileInputRefAllotissement = useRef<HTMLInputElement>(null)
 
-  // Référence pour le wrapper de transformation
-  const transformWrapperRef = useRef(null)
+  // Référence pour le wrapper de transformation et le titre du projet
+  const transformWrapperRef = useRef<any>(null)
+  const projectTitleRef = useRef<HTMLDivElement>(null)
 
-  // Effet pour initialiser la vue après le premier rendu
+  // Fonction pour centrer la vue sur le titre du projet
+  const centerOnProjectTitle = useCallback(() => {
+    if (transformWrapperRef.current) {
+      const instance = transformWrapperRef.current
+
+      // Coordonnées du centre du titre du projet
+      const targetX = 6350
+      const targetY = 75
+
+      // Obtenir les dimensions de la fenêtre
+      const windowWidth = window.innerWidth
+      const windowHeight = window.innerHeight
+
+      // Calculer les positions pour centrer la vue
+      const scale = 0.5
+      const posX = windowWidth / 2 - targetX * scale
+      const posY = windowHeight / 2 - targetY * scale
+
+      // Appliquer la transformation
+      if (instance.setTransformMatrix) {
+        instance.setTransformMatrix({
+          positionX: posX,
+          positionY: posY,
+          scale: scale,
+        })
+      } else if (instance.setTransform) {
+        instance.setTransform(posX, posY, scale)
+      }
+    }
+  }, [])
+
+  // Effet pour initialiser la vue après le premier rendu et centrer sur le titre du projet
   useEffect(() => {
     if (!isInitialized) {
-      // Petit délai pour s'assurer que le composant est complètement monté
+      // Délai plus long pour s'assurer que tout est bien rendu
       const timer = setTimeout(() => {
         setIsInitialized(true)
-      }, 100)
+        centerOnProjectTitle()
+      }, 1500)
       return () => clearTimeout(timer)
     }
-  }, [isInitialized])
+  }, [isInitialized, centerOnProjectTitle])
 
   // Utiliser useCallback pour éviter de recréer la fonction à chaque rendu
   const handleLotsChange = useCallback((newLots: Lot[]) => {
@@ -232,7 +272,7 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
             textAlign: "center",
           }}
         >
-          <h2 className="text-[65px] font-bold text-custom-black">{title}</h2>
+          <h2 className="text-[65px] font-bold text-black">{title}</h2>
         </div>,
       )
     })
@@ -273,10 +313,21 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
     setIsProjectInfoModalOpen(false)
   }
 
+  const handleOpenIntervenants = () => {
+    setIsIntervenantsModalOpen(true)
+  }
+
+  const handleCloseIntervenants = () => {
+    setIsIntervenantsModalOpen(false)
+  }
+
   const handleSaveProjectInfo = (info: ProjectInfo) => {
     saveProjectInfo(info)
     setIsProjectInfoModalOpen(false)
   }
+
+  // Déterminer le nom du projet à afficher
+  const displayProjectName = projectInfo?.projectName || projectName || "Nom du Projet"
 
   return (
     <div className="w-full h-full overflow-hidden bg-gray-100 relative">
@@ -289,7 +340,7 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
         wheel={{ step: 0.1 }}
         panning={{ disabled: !isPanningEnabled, velocityDisabled: false }}
         disablePadding={true}
-        centerOnInit={true}
+        centerOnInit={false} // Désactivé car nous allons centrer manuellement
         centerZoomedOut={false}
         doubleClick={{ disabled: true }}
         initialPositionX={0}
@@ -301,7 +352,7 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
           animationType: "easeOut",
         }}
       >
-        {({ zoomIn, zoomOut, resetTransform, instance }) => (
+        {({ zoomIn, zoomOut, resetTransform }) => (
           <>
             {/* Contrôles optionnels */}
             <div className="fixed bottom-4 right-[calc(10%+10px)] bg-white bg-opacity-70 p-2 rounded shadow-md z-50 flex gap-2">
@@ -320,7 +371,10 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
               <Button
                 onClick={() => {
                   resetTransform()
-                  // Pas besoin d'appeler centerView car resetTransform fait déjà le recentrage
+                  // Après reset, centrer sur le titre du projet
+                  setTimeout(() => {
+                    centerOnProjectTitle()
+                  }, 500)
                 }}
                 className="bg-custom-gold hover:bg-yellow-600 text-black font-bold py-1 px-3 rounded"
               >
@@ -349,6 +403,7 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
                   }}
                 >
                   <div
+                    ref={projectTitleRef}
                     style={{
                       position: "absolute",
                       left: "0",
@@ -359,8 +414,10 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
                       justifyContent: "center",
                       alignItems: "center",
                     }}
+                    data-center-x="6350"
+                    data-center-y="75"
                   >
-                    <h1 className="text-[80px] font-bold text-custom-black">{projectName}</h1>
+                    <h1 className="text-[80px] font-bold text-black">{displayProjectName}</h1>
                   </div>
                 </div>
 
@@ -444,12 +501,13 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
                     <ComptabiliteChantierTable lots={lots} mieuxDisantSelections={mieuxDisantSelections} />
                   </div>
 
-                  {/* Suivi de chantier - déplacée de 800px vers la gauche (500px + 300px) */}
+                  {/* Section DET - Nouvelle version avec tableau simple */}
                   <div
                     style={{
                       position: "absolute",
-                      left: 8800, // 9600 - 800
+                      left: 8800,
                       top: 100,
+                      width: "1800px", // Même largeur que l'espace SAO
                     }}
                     className="shadow-xl"
                     onMouseDown={handleInteractionStart}
@@ -457,7 +515,7 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
                     onTouchStart={handleInteractionStart}
                     onTouchEnd={handleInteractionEnd}
                   >
-                    <SuiviChantierTable />
+                    <DetTableSection projectId={projectId} lots={lots} />
                   </div>
 
                   {/* PV de réception - après la dernière ligne verticale (10700px) */}
@@ -521,7 +579,7 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
                       top: 100,
                       width: "850px", // Largeur ajustée pour ne pas dépasser la ligne de fin de zone (10700)
                     }}
-                    className="shadow-xl table-container"
+                    className="shadow-xl table-container hidden" // Caché pour le moment car remplacé par la section DET
                     onMouseDown={handleInteractionStart}
                     onMouseUp={handleInteractionEnd}
                     onTouchStart={handleInteractionStart}
@@ -569,6 +627,7 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
       {/* Remplacer le div du ruban à droite par le composant RightSidebar */}
       <RightSidebar
         onOpenProjectInfo={handleOpenProjectInfo}
+        onOpenIntervenants={handleOpenIntervenants}
         fileInputRefLots={fileInputRefAllotissement}
         fileInputRefEntreprises={fileInputRefConsultation}
         onLotsFileChange={handleAllotissementFileUpload}
@@ -585,6 +644,16 @@ export const InfiniteCanvas = ({ tables = [], projectName = "Nom du Projet" }: I
           onSave={handleSaveProjectInfo}
         />
       )}
+
+      {/* Fenêtre modale pour les intervenants */}
+      <IntervenantsModal
+        isOpen={isIntervenantsModalOpen}
+        onClose={handleCloseIntervenants}
+        projectId={projectId}
+        appelOffresEntries={appelOffresEntries}
+      />
     </div>
   )
 }
+
+export { InfiniteCanvas }

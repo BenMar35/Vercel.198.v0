@@ -1,11 +1,12 @@
 "use client"
 
 import type React from "react"
-import { FileText, Building, ClipboardList } from "lucide-react"
+import { FileText, Building, ClipboardList, Users } from "lucide-react"
 import { SidebarButton } from "./SidebarButton"
 
 interface RightSidebarProps {
   onOpenProjectInfo: () => void
+  onOpenIntervenants: () => void
   fileInputRefLots: React.RefObject<HTMLInputElement>
   fileInputRefEntreprises: React.RefObject<HTMLInputElement>
   onLotsFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -14,6 +15,7 @@ interface RightSidebarProps {
 
 export function RightSidebar({
   onOpenProjectInfo,
+  onOpenIntervenants,
   fileInputRefLots,
   fileInputRefEntreprises,
   onLotsFileChange,
@@ -33,12 +35,15 @@ export function RightSidebar({
       <div className="w-full h-px bg-gray-400 mb-4 mx-auto"></div>
 
       {/* Bouton Projet */}
-      <SidebarButton icon={FileText} label="Projet" onClick={onOpenProjectInfo} />
+      <SidebarButton icon={FileText} tooltip="Projet" onClick={onOpenProjectInfo} />
+
+      {/* Bouton Intervenants */}
+      <SidebarButton icon={Users} tooltip="Intervenants" onClick={onOpenIntervenants} />
 
       {/* Bouton Lot avec input caché */}
       <div className="w-full">
         <input ref={fileInputRefLots} type="file" onChange={onLotsFileChange} accept=".csv" className="hidden" />
-        <SidebarButton icon={ClipboardList} label="Lot" onClick={() => fileInputRefLots.current?.click()} />
+        <SidebarButton icon={ClipboardList} tooltip="Lot" onClick={() => fileInputRefLots.current?.click()} />
       </div>
 
       {/* Bouton Entreprises avec input caché */}
@@ -50,7 +55,7 @@ export function RightSidebar({
           accept=".csv"
           className="hidden"
         />
-        <SidebarButton icon={Building} label="Ets" onClick={() => fileInputRefEntreprises.current?.click()} />
+        <SidebarButton icon={Building} tooltip="Ets" onClick={() => fileInputRefEntreprises.current?.click()} />
       </div>
     </div>
   )
