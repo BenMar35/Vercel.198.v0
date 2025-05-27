@@ -1,8 +1,15 @@
 "use client"
 
-import { InfiniteCanvas } from "@/components/InfiniteCanvas"
-// Ne pas utiliser InfiniteCanvasV2 pour le moment
-// import { InfiniteCanvasV2 } from "@/components/InfiniteCanvasV2"
+import dynamic from "next/dynamic"
+
+// Chargement dynamique d'InfiniteCanvas uniquement côté client
+const InfiniteCanvas = dynamic(
+  () => import("@/components/InfiniteCanvas").then((mod) => ({ default: mod.InfiniteCanvas })),
+  {
+    ssr: false,
+    loading: () => <div className="w-screen h-screen flex items-center justify-center">Chargement...</div>,
+  },
+)
 
 export default function Home() {
   return (

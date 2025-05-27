@@ -2,7 +2,7 @@
 const nextConfig = {
   // Configurations recommandées par Vercel
   reactStrictMode: true,
-  swcMinify: true,
+  // swcMinify: true, // Supprimé car obsolète dans Next.js 15
 
   // Configuration des images si nécessaire
   images: {
