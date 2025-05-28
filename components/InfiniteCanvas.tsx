@@ -79,35 +79,23 @@ const InfiniteCanvas = ({
   const [isInitialized, setIsInitialized] = useState(false)
   const [isProjectInfoModalOpen, setIsProjectInfoModalOpen] = useState(false)
   const [isIntervenantsModalOpen, setIsIntervenantsModalOpen] = useState(false)
-  const { projectInfo, saveProjectInfo } = useProjectInfo(projectId)
-
-  // Références pour les inputs de fichiers
+  const { projectInfo, setProjectInfo } = useProjectInfo(projectId)
   const fileInputRefConsultation = useRef<HTMLInputElement>(null)
   const fileInputRefAllotissement = useRef<HTMLInputElement>(null)
-
-  // Référence pour le wrapper de transformation et le titre du projet
   const transformWrapperRef = useRef<any>(null)
   const projectTitleRef = useRef<HTMLDivElement>(null)
 
-  // Fonction pour centrer la vue sur le titre du projet
   const centerOnProjectTitle = useCallback(() => {
     if (transformWrapperRef.current) {
       const instance = transformWrapperRef.current
-
-      // Coordonnées du centre du titre du projet
       const targetX = 6350
       const targetY = 75
-
-      // Obtenir les dimensions de la fenêtre
       const windowWidth = window.innerWidth
       const windowHeight = window.innerHeight
-
-      // Calculer les positions pour centrer la vue
       const scale = 0.5
       const posX = windowWidth / 2 - targetX * scale
       const posY = windowHeight / 2 - targetY * scale
 
-      // Appliquer la transformation
       if (instance.setTransformMatrix) {
         instance.setTransformMatrix({
           positionX: posX,
@@ -120,10 +108,8 @@ const InfiniteCanvas = ({
     }
   }, [])
 
-  // Effet pour initialiser la vue après le premier rendu et centrer sur le titre du projet
   useEffect(() => {
     if (!isInitialized) {
-      // Délai plus long pour s'assurer que tout est bien rendu
       const timer = setTimeout(() => {
         setIsInitialized(true)
         centerOnProjectTitle()
@@ -132,18 +118,16 @@ const InfiniteCanvas = ({
     }
   }, [isInitialized, centerOnProjectTitle])
 
-  // Utiliser useCallback pour éviter de recréer la fonction à chaque rendu
   const handleLotsChange = useCallback((newLots: Lot[]) => {
-    // Vérifier si les lots ont réellement changé pour éviter les mises à jour inutiles
     if (JSON.stringify(lotsRef.current) !== JSON.stringify(newLots)) {
       setLots(newLots)
       lotsRef.current = newLots
     }
   }, [])
 
-  // Gérer les sélections mieux disant
   const handleMieuxDisantChange = useCallback(
     (lotId: string, selectedOfferId: string, offer: string, company: string) => {
+      console.log("Mieux disant sélectionné:", { lotId, selectedOfferId, offer, company })
       setMieuxDisantSelections((prev) => ({
         ...prev,
         [lotId]: { selectedOfferId, offer, company },
@@ -152,21 +136,17 @@ const InfiniteCanvas = ({
     [],
   )
 
-  // Fonction pour transférer une entreprise vers la table appel d'offres
   const handleTransferToAppelOffres = useCallback((lot: number, entreprise: CsvData) => {
     setAppelOffresEntries((prev) => {
-      // Vérifier si cette entreprise est déjà dans la table pour ce lot
       const existingEntryIndex = prev.findIndex(
         (entry) => entry.lot === lot && entry.raisonSociale === entreprise.raisonSociale,
       )
 
       if (existingEntryIndex >= 0) {
-        // Si l'entrée existe déjà, la supprimer
         const newEntries = [...prev]
         newEntries.splice(existingEntryIndex, 1)
         return newEntries
       } else {
-        // Sinon, ajouter une nouvelle entrée
         return [
           ...prev,
           {
@@ -182,7 +162,6 @@ const InfiniteCanvas = ({
     })
   }, [])
 
-  // Fonction pour rendre les lignes verticales dans l'espace principal
   const renderVerticalLines = () => {
     const lines = []
     const totalWidth = 12000
@@ -192,7 +171,6 @@ const InfiniteCanvas = ({
     const height = 1500 - topMargin - bottomMargin
 
     for (let x = lineInterval; x < totalWidth; x += lineInterval) {
-      // Ajuster la position des lignes à 8000px et 10000px
       let position = x
       if (x === 8000) position = 8700
       if (x === 10000) position = 10700
@@ -215,7 +193,6 @@ const InfiniteCanvas = ({
     return lines
   }
 
-  // Fonction pour rendre les lignes verticales dans les sections d'en-tête
   const renderVerticalLinesForSection = (height: number) => {
     const lines = []
     const positions = [2000, 4000, 6000, 8700, 10700]
@@ -223,7 +200,6 @@ const InfiniteCanvas = ({
     const bottomMargin = 50
     const lineHeight = height - topMargin - bottomMargin
 
-    // Ajouter les lignes verticales
     positions.forEach((position, index) => {
       lines.push(
         <div
@@ -242,7 +218,6 @@ const InfiniteCanvas = ({
 
     return lines
   }
-  // Fonction pour rendre le bandeau des titres
   const renderTitleSection = () => {
     const titles = ["ESQ", "DCE", "SAO", "CGC", "DET", "AOR"]
     const sectionWidths = [
@@ -256,7 +231,6 @@ const InfiniteCanvas = ({
 
     const elements = [...renderVerticalLinesForSection(125)]
 
-    // Ajouter les titres
     titles.forEach((title, index) => {
       const section = sectionWidths[index]
       const center = (section.start + section.end) / 2
@@ -266,7 +240,7 @@ const InfiniteCanvas = ({
           key={`title-${index}`}
           style={{
             position: "absolute",
-            left: `${center - 75}px`, // Centrer approximativement
+            left: `${center - 75}px`,
             top: "30px",
             width: "150px",
             textAlign: "center",
@@ -280,7 +254,6 @@ const InfiniteCanvas = ({
     return elements
   }
 
-  // Fonction pour désactiver temporairement le panning lors de l'interaction avec les inputs
   const handleInteractionStart = () => {
     setIsPanningEnabled(false)
   }
@@ -289,17 +262,13 @@ const InfiniteCanvas = ({
     setIsPanningEnabled(true)
   }
 
-  // Fonction pour gérer l'upload du fichier CSV des entreprises
   const handleConsultationFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Transmettre l'événement au composant ConsultationEntreprises
     if (event.target.files && event.target.files.length > 0) {
       console.log("Fichier d'entreprises sélectionné:", event.target.files[0].name)
     }
   }
 
-  // Fonction pour gérer l'upload du fichier CSV des lots
   const handleAllotissementFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Transmettre l'événement au composant AllotissementTable
     if (event.target.files && event.target.files.length > 0) {
       console.log("Fichier de lots sélectionné:", event.target.files[0].name)
     }
@@ -322,11 +291,10 @@ const InfiniteCanvas = ({
   }
 
   const handleSaveProjectInfo = (info: ProjectInfo) => {
-    saveProjectInfo(info)
+    setProjectInfo(info)
     setIsProjectInfoModalOpen(false)
   }
 
-  // Déterminer le nom du projet à afficher
   const displayProjectName = projectInfo?.projectName || projectName || "Nom du Projet"
 
   return (
@@ -340,7 +308,7 @@ const InfiniteCanvas = ({
         wheel={{ step: 0.1 }}
         panning={{ disabled: !isPanningEnabled, velocityDisabled: false }}
         disablePadding={true}
-        centerOnInit={false} // Désactivé car nous allons centrer manuellement
+        centerOnInit={false}
         centerZoomedOut={false}
         doubleClick={{ disabled: true }}
         initialPositionX={0}
@@ -354,7 +322,6 @@ const InfiniteCanvas = ({
       >
         {({ zoomIn, zoomOut, resetTransform }) => (
           <>
-            {/* Contrôles optionnels */}
             <div className="fixed bottom-4 right-[calc(10%+10px)] bg-white bg-opacity-70 p-2 rounded shadow-md z-50 flex gap-2">
               <Button
                 onClick={() => zoomIn()}
@@ -371,7 +338,6 @@ const InfiniteCanvas = ({
               <Button
                 onClick={() => {
                   resetTransform()
-                  // Après reset, centrer sur le titre du projet
                   setTimeout(() => {
                     centerOnProjectTitle()
                   }, 500)
@@ -388,12 +354,11 @@ const InfiniteCanvas = ({
                 height: "100%",
               }}
               contentStyle={{
-                width: "12700px", // Largeur totale du contenu
-                height: "2000px", // Hauteur totale du contenu
+                width: "12700px",
+                height: "2000px",
               }}
             >
               <div className="relative">
-                {/* Nouvel espace pour le nom du projet */}
                 <div
                   className="relative bg-white"
                   style={{
@@ -421,7 +386,6 @@ const InfiniteCanvas = ({
                   </div>
                 </div>
 
-                {/* Espace pour les titres (ESQ, DCE, etc.) */}
                 <div
                   className="relative bg-white"
                   style={{
@@ -433,7 +397,6 @@ const InfiniteCanvas = ({
                   {renderTitleSection()}
                 </div>
 
-                {/* Espace principal */}
                 <div
                   className="relative bg-white"
                   style={{
@@ -441,10 +404,8 @@ const InfiniteCanvas = ({
                     height: "1500px",
                   }}
                 >
-                  {/* Lignes verticales */}
                   {renderVerticalLines()}
 
-                  {/* Table d'allotissement - déplacée de 2000px */}
                   <div
                     style={{
                       position: "absolute",
@@ -460,7 +421,6 @@ const InfiniteCanvas = ({
                     <AllotissementTable onLotsChange={handleLotsChange} fileInputRef={fileInputRefAllotissement} />
                   </div>
 
-                  {/* Table d'appel d'offres - déplacée de 2000px */}
                   <div
                     style={{
                       position: "absolute",
@@ -481,10 +441,10 @@ const InfiniteCanvas = ({
                       lots={lots}
                       entries={appelOffresEntries}
                       onMieuxDisantChange={handleMieuxDisantChange}
+                      projectId={projectId}
                     />
                   </div>
 
-                  {/* Table de comptabilité chantier - déplacée de 2000px */}
                   <div
                     style={{
                       position: "absolute",
@@ -498,16 +458,19 @@ const InfiniteCanvas = ({
                     onTouchStart={handleInteractionStart}
                     onTouchEnd={handleInteractionEnd}
                   >
-                    <ComptabiliteChantierTable lots={lots} mieuxDisantSelections={mieuxDisantSelections} />
+                    <ComptabiliteChantierTable
+                      lots={lots}
+                      mieuxDisantSelections={mieuxDisantSelections}
+                      projectId={projectId}
+                    />
                   </div>
 
-                  {/* Section DET - Nouvelle version avec tableau simple */}
                   <div
                     style={{
                       position: "absolute",
                       left: 8800,
                       top: 100,
-                      width: "1800px", // Même largeur que l'espace SAO
+                      width: "1800px",
                     }}
                     className="shadow-xl"
                     onMouseDown={handleInteractionStart}
@@ -518,7 +481,6 @@ const InfiniteCanvas = ({
                     <DetTableSection projectId={projectId} lots={lots} />
                   </div>
 
-                  {/* PV de réception - après la dernière ligne verticale (10700px) */}
                   <div
                     style={{
                       position: "absolute",
@@ -535,7 +497,6 @@ const InfiniteCanvas = ({
                     <PvrSection title="PV de réception" lots={lots} position="left" />
                   </div>
 
-                  {/* Levée des réserves - à droite du PV de réception */}
                   <div
                     style={{
                       position: "absolute",
@@ -552,7 +513,6 @@ const InfiniteCanvas = ({
                     <PvrSection title="Levée des réserves" lots={lots} position="right" />
                   </div>
 
-                  {/* Tables additionnelles */}
                   {tables.map((table) => (
                     <div
                       key={table.id}
@@ -571,15 +531,14 @@ const InfiniteCanvas = ({
                     </div>
                   ))}
 
-                  {/* Liste de tâches - placée à droite du suivi de chantier */}
                   <div
                     style={{
                       position: "absolute",
-                      left: 9800, // Après le suivi de chantier (8800 + espace)
+                      left: 9800,
                       top: 100,
-                      width: "850px", // Largeur ajustée pour ne pas dépasser la ligne de fin de zone (10700)
+                      width: "850px",
                     }}
-                    className="shadow-xl table-container hidden" // Caché pour le moment car remplacé par la section DET
+                    className="shadow-xl table-container hidden"
                     onMouseDown={handleInteractionStart}
                     onMouseUp={handleInteractionEnd}
                     onTouchStart={handleInteractionStart}
@@ -589,12 +548,11 @@ const InfiniteCanvas = ({
                   </div>
                 </div>
 
-                {/* Table de consultation entreprises - placée sous l'espace principal */}
                 <div
                   style={{
                     position: "absolute",
                     left: 4100,
-                    top: 1525, // 1500px (hauteur de l'espace principal) + 25px d'espace
+                    top: 1525,
                     width: "1800px",
                   }}
                   className="shadow-xl table-container"
@@ -618,13 +576,11 @@ const InfiniteCanvas = ({
         )}
       </TransformWrapper>
 
-      {/* Ruban à gauche - fixe par rapport à la fenêtre */}
       <LeftSidebar
         isExpanded={isLeftSidebarExpanded}
         onToggleExpand={() => setIsLeftSidebarExpanded(!isLeftSidebarExpanded)}
       />
 
-      {/* Remplacer le div du ruban à droite par le composant RightSidebar */}
       <RightSidebar
         onOpenProjectInfo={handleOpenProjectInfo}
         onOpenIntervenants={handleOpenIntervenants}
@@ -634,7 +590,6 @@ const InfiniteCanvas = ({
         onEntreprisesFileChange={handleConsultationFileUpload}
       />
 
-      {/* Fenêtre modale pour les informations du projet */}
       {projectInfo && (
         <ProjectInfoModal
           isOpen={isProjectInfoModalOpen}
@@ -645,13 +600,7 @@ const InfiniteCanvas = ({
         />
       )}
 
-      {/* Fenêtre modale pour les intervenants */}
-      <IntervenantsModal
-        isOpen={isIntervenantsModalOpen}
-        onClose={handleCloseIntervenants}
-        projectId={projectId}
-        appelOffresEntries={appelOffresEntries}
-      />
+      <IntervenantsModal isOpen={isIntervenantsModalOpen} onClose={handleCloseIntervenants} projectId={projectId} />
     </div>
   )
 }

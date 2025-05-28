@@ -230,7 +230,7 @@ export const LeftSidebar = ({ isExpanded: propIsExpanded, onToggleExpand }: Left
   // Utiliser la prop isExpanded si elle est fournie, sinon utiliser l'état local
   const [isExpandedState, setIsExpandedState] = useState(true)
   const isExpanded = propIsExpanded !== undefined ? propIsExpanded : isExpandedState
-  const sidebarWidth = "35%" // Largeur fixe à 35% du navigateur
+  const sidebarWidth = "min(35%, 1000px)" // Largeur de 35% avec un maximum de 1000px
 
   // Gérer l'affichage de la barre de défilement
   useEffect(() => {

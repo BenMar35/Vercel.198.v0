@@ -1,7 +1,30 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import type { ProjectInfo } from "@/components/ProjectInfoModal"
+
+export interface Contact {
+  id: string
+  name: string
+  role: string
+  phone: string
+  email: string
+  address?: string
+  contact?: string
+}
+
+export interface ProjectInfo {
+  projectId: string
+  affaireNumber: string
+  projectName: string
+  maitriseOuvrage: string
+  references: Array<{ id: string; value: string }>
+  contacts: Contact[]
+  address: {
+    street: string
+    postalCode: string
+    city: string
+  }
+}
 
 export function useProjectInfo(projectId: string) {
   const [projectInfo, setProjectInfoState] = useState<ProjectInfo | null>(null)
@@ -25,7 +48,7 @@ export function useProjectInfo(projectId: string) {
           projectName: "",
           maitriseOuvrage: "",
           references: [{ id: "ref-1", value: "" }],
-          contacts: [{ id: "contact-1", name: "", role: "", phone: "", email: "" }],
+          contacts: [],
           address: {
             street: "",
             postalCode: "",
@@ -48,6 +71,13 @@ export function useProjectInfo(projectId: string) {
     try {
       localStorage.setItem(`project_info_${projectId}`, JSON.stringify(info))
       setProjectInfoState(info)
+
+      // Déclencher un événement pour notifier les autres composants
+      window.dispatchEvent(
+        new CustomEvent("projectInfoUpdated", {
+          detail: { projectId, projectInfo: info },
+        }),
+      )
     } catch (error) {
       console.error("Erreur lors de la sauvegarde des informations du projet:", error)
     }

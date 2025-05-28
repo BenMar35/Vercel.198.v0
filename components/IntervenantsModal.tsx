@@ -5,13 +5,12 @@ import { X, Plus, Trash2, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useProjectInfo } from "@/hooks/useProjectInfo"
+import { useProjectInfo, type Contact } from "@/hooks/useProjectInfo"
 
 interface IntervenantsModalProps {
   isOpen: boolean
   onClose: () => void
   projectId: string
-  appelOffresEntries: any[] // Entreprises de SAO
 }
 
 const roleOptions = [
@@ -24,51 +23,88 @@ const roleOptions = [
   "BET Thermique",
 ]
 
-export function IntervenantsModal({ isOpen, onClose, projectId, appelOffresEntries }: IntervenantsModalProps) {
-  const { projectInfo, saveProjectInfo } = useProjectInfo(projectId)
+interface ComptabiliteRow {
+  id: string
+  lotId: string
+  raisonSociale: string
+  offre: string
+  avenants: { id: string; value: string }[]
+  bps: { id: string; value: string }[]
+  total?: number
+  totalPaiement?: number
+  resteAPayer?: number
+}
+
+interface Lot {
+  id: string
+  name: string
+  numero: string
+}
+
+export function IntervenantsModal({ isOpen, onClose, projectId }: IntervenantsModalProps) {
+  const { projectInfo, setProjectInfo } = useProjectInfo(projectId)
   const [activeTab, setActiveTab] = useState("maitrise-ouvrage")
 
   // État pour les contacts de maîtrise d'ouvrage
-  const [moContacts, setMoContacts] = useState<
-    { id: string; name: string; role: string; phone: string; email: string }[]
-  >([])
+  const [moContacts, setMoContacts] = useState<Contact[]>([])
 
   // État pour les contacts de maîtrise d'œuvre et BET
-  const [moeContacts, setMoeContacts] = useState<
-    { id: string; name: string; role: string; phone: string; email: string }[]
-  >([])
+  const [moeContacts, setMoeContacts] = useState<Contact[]>([])
 
   // État pour les entreprises sélectionnées
-  const [selectedCompanies, setSelectedCompanies] = useState<
-    { id: string; name: string; role: string; phone: string; email: string }[]
-  >([])
+  const [comptabiliteEntreprises, setComptabiliteEntreprises] = useState<Contact[]>([])
+
+  // Récupérer les données de comptabilité chantier
+  useEffect(() => {
+    try {
+      // Récupérer les lots
+      const lotsData = localStorage.getItem(`lots_${projectId}`)
+      const lots: Lot[] = lotsData ? JSON.parse(lotsData) : []
+
+      // Récupérer les données de comptabilité chantier
+      const comptabiliteData = localStorage.getItem(`comptabilite_chantier_${projectId}`)
+      const comptabiliteRows: ComptabiliteRow[] = comptabiliteData ? JSON.parse(comptabiliteData) : []
+
+      // Créer les contacts à partir des données de comptabilité
+      const entreprises = comptabiliteRows
+        .filter((row) => row.raisonSociale && row.raisonSociale.trim() !== "")
+        .map((row) => {
+          const lot = lots.find((l) => l.id === row.lotId) || { numero: "", name: "" }
+          return {
+            id: `company-${row.lotId}`,
+            name: row.raisonSociale,
+            role: `Lot ${lot.numero} - ${lot.name}`,
+            phone: "",
+            email: "",
+          }
+        })
+
+      setComptabiliteEntreprises(entreprises)
+      console.log("Entreprises de comptabilité chantier chargées:", entreprises)
+    } catch (error) {
+      console.error("Erreur lors du chargement des entreprises de comptabilité chantier:", error)
+    }
+  }, [projectId, isOpen])
 
   // Initialiser les contacts à partir des données du projet
   useEffect(() => {
     if (projectInfo?.contacts) {
       // Filtrer les contacts par rôle
       const mo = projectInfo.contacts.filter((c) => c.role === "Maîtrise d'ouvrage")
-      const moe = projectInfo.contacts.filter((c) => c.role !== "Maîtrise d'ouvrage" && c.role !== "")
+      const moe = projectInfo.contacts.filter(
+        (c) => c.role !== "Maîtrise d'ouvrage" && c.role !== "" && !c.role.startsWith("Lot"),
+      )
 
-      if (mo.length > 0) setMoContacts(mo)
-      if (moe.length > 0) setMoeContacts(moe)
+      setMoContacts(
+        mo.length > 0 ? mo : [{ id: `mo-${Date.now()}`, name: "", role: "Maîtrise d'ouvrage", phone: "", email: "" }],
+      )
+      setMoeContacts(moe)
+    } else {
+      // Initialiser avec un contact MO par défaut
+      setMoContacts([{ id: `mo-${Date.now()}`, name: "", role: "Maîtrise d'ouvrage", phone: "", email: "" }])
+      setMoeContacts([])
     }
   }, [projectInfo])
-
-  // Initialiser les entreprises à partir des données SAO
-  useEffect(() => {
-    if (appelOffresEntries && appelOffresEntries.length > 0) {
-      const companies = appelOffresEntries.map((entry) => ({
-        id: `company-${entry.lot}-${entry.raisonSociale}`,
-        name: entry.raisonSociale,
-        role: `Lot ${entry.lot}`,
-        phone: entry.telephone || "",
-        email: entry.email || "",
-      }))
-
-      setSelectedCompanies(companies)
-    }
-  }, [appelOffresEntries])
 
   const handleAddMoContact = () => {
     setMoContacts([
@@ -82,7 +118,9 @@ export function IntervenantsModal({ isOpen, onClose, projectId, appelOffresEntri
   }
 
   const handleRemoveMoContact = (id: string) => {
-    setMoContacts(moContacts.filter((contact) => contact.id !== id))
+    if (moContacts.length > 1) {
+      setMoContacts(moContacts.filter((contact) => contact.id !== id))
+    }
   }
 
   const handleRemoveMoeContact = (id: string) => {
@@ -99,7 +137,7 @@ export function IntervenantsModal({ isOpen, onClose, projectId, appelOffresEntri
 
   const handleSave = () => {
     // Combiner tous les contacts
-    const allContacts = [...moContacts, ...moeContacts]
+    const allContacts = [...moContacts, ...moeContacts, ...comptabiliteEntreprises]
 
     // Mettre à jour les informations du projet
     if (projectInfo) {
@@ -107,7 +145,8 @@ export function IntervenantsModal({ isOpen, onClose, projectId, appelOffresEntri
         ...projectInfo,
         contacts: allContacts,
       }
-      saveProjectInfo(updatedProjectInfo)
+      setProjectInfo(updatedProjectInfo)
+      console.log("Contacts sauvegardés:", allContacts)
     }
 
     onClose()
@@ -166,13 +205,6 @@ export function IntervenantsModal({ isOpen, onClose, projectId, appelOffresEntri
                     </td>
                   </tr>
                 ))}
-                {moContacts.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-2 text-center text-gray-500 text-sm">
-                      Aucun contact. Cliquez sur "+" pour ajouter.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -253,7 +285,7 @@ export function IntervenantsModal({ isOpen, onClose, projectId, appelOffresEntri
           <div className="p-2">
             <table className="w-full border-collapse">
               <tbody>
-                {selectedCompanies.map((company, index) => (
+                {comptabiliteEntreprises.map((company, index) => (
                   <tr key={company.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                     <td className="py-1 pr-1 w-1/4">
                       <Input
@@ -271,25 +303,37 @@ export function IntervenantsModal({ isOpen, onClose, projectId, appelOffresEntri
                     </td>
                     <td className="py-1 pr-1 w-1/4">
                       <Input
-                        value={company.phone}
-                        readOnly
+                        placeholder="Téléphone"
+                        value={company.phone || ""}
+                        onChange={(e) => {
+                          const updatedCompanies = comptabiliteEntreprises.map((c) =>
+                            c.id === company.id ? { ...c, phone: e.target.value } : c,
+                          )
+                          setComptabiliteEntreprises(updatedCompanies)
+                        }}
                         className="h-7 text-sm bg-transparent border-0 focus:ring-0 px-2"
                       />
                     </td>
                     <td className="py-1 pr-1 w-1/4">
                       <Input
-                        value={company.email}
-                        readOnly
+                        placeholder="Email"
+                        value={company.email || ""}
+                        onChange={(e) => {
+                          const updatedCompanies = comptabiliteEntreprises.map((c) =>
+                            c.id === company.id ? { ...c, email: e.target.value } : c,
+                          )
+                          setComptabiliteEntreprises(updatedCompanies)
+                        }}
                         className="h-7 text-sm bg-transparent border-0 focus:ring-0 px-2"
                       />
                     </td>
                     <td className="py-1 w-8"></td>
                   </tr>
                 ))}
-                {selectedCompanies.length === 0 && (
+                {comptabiliteEntreprises.length === 0 && (
                   <tr>
                     <td colSpan={5} className="py-2 text-center text-gray-500 text-sm">
-                      Aucune entreprise trouvée dans la section SAO.
+                      Aucune entreprise trouvée dans la comptabilité chantier.
                     </td>
                   </tr>
                 )}

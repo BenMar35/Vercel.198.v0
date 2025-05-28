@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import { useProjectInfo } from "@/hooks/useProjectInfo"
+import { useProjectInfo, type Contact } from "@/hooks/useProjectInfo"
 import { LotObservations } from "@/components/LotObservations"
+import { useLocalStorage } from "@/hooks/useLocalStorage"
 
 interface DetTableSectionProps {
   projectId?: string
@@ -14,6 +15,30 @@ interface DetTableSectionProps {
     name: string
     numero: string
   }>
+}
+
+type SelectedCompany = {
+  id: string
+  companyId: string
+  offer: string
+  conformity: "oui" | "non" | ""
+  selected: boolean
+  lotId: string
+  commentaires: string
+  avenant1: string
+  avenant2: string
+  avenant3: string
+  avenant4: string
+  bp1: string
+  bp2: string
+  bp3: string
+  bp4: string
+}
+
+type Company = {
+  id: string
+  "Raison sociale": string
+  [key: string]: string
 }
 
 export function DetTableSection({ projectId = "project-1", lots = [] }: DetTableSectionProps) {
@@ -33,20 +58,58 @@ export function DetTableSection({ projectId = "project-1", lots = [] }: DetTable
   >([])
   const [observationsGenerales, setObservationsGenerales] = useState("")
 
+  // Récupérer les entreprises sélectionnées et les entreprises
+  const [selectedCompanies] = useLocalStorage<SelectedCompany[]>(`selected-companies-${projectId}`, [])
+  const [companies] = useLocalStorage<Company[]>(`companies-${projectId}`, [])
+
+  // Écouter les mises à jour des informations du projet
+  useEffect(() => {
+    const handleProjectInfoUpdate = (event: CustomEvent) => {
+      if (event.detail.projectId === projectId) {
+        console.log("Mise à jour des informations du projet détectée")
+        // Forcer la re-lecture des données
+        window.location.reload()
+      }
+    }
+
+    window.addEventListener("projectInfoUpdated", handleProjectInfoUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener("projectInfoUpdated", handleProjectInfoUpdate as EventListener)
+    }
+  }, [projectId])
+
   // Initialiser les participants à partir des contacts du projet
   useEffect(() => {
+    console.log("ProjectInfo contacts:", projectInfo?.contacts)
+
     if (projectInfo?.contacts && projectInfo.contacts.length > 0) {
-      const initialParticipants = projectInfo.contacts.map((contact) => ({
+      const initialParticipants = projectInfo.contacts.map((contact: Contact) => ({
         id: contact.id,
         name: contact.name,
         role: contact.role,
         address: contact.address || "",
-        contact: contact.contact || "",
+        contact: contact.phone || contact.email || "",
         present: false,
       }))
+
+      console.log("Participants initialisés:", initialParticipants)
       setParticipants(initialParticipants)
+    } else {
+      console.log("Aucun contact trouvé dans projectInfo")
+      setParticipants([])
     }
   }, [projectInfo])
+
+  // Fonction pour obtenir le nom de l'entreprise associée à un lot
+  const getCompanyNameForLot = (lotId: string) => {
+    const selectedCompany = selectedCompanies.find((sc) => sc.lotId === lotId && sc.selected)
+    if (selectedCompany) {
+      const company = companies.find((c) => c.id === selectedCompany.companyId)
+      return company?.["Raison sociale"] || ""
+    }
+    return ""
+  }
 
   const handlePresenceChange = (id: string, checked: boolean) => {
     setParticipants((prev) =>
@@ -65,41 +128,35 @@ export function DetTableSection({ projectId = "project-1", lots = [] }: DetTable
       <h2 className="text-2xl font-bold mb-6">Compte rendu</h2>
 
       <div className="space-y-4">
-        {/* Ligne 1: Numéro de compte rendu */}
-        <div className="flex items-center">
-          <div className="w-1/3 font-medium">Numéro de compte rendu :</div>
-          <div className="w-2/3">
+        {/* Ligne unique avec les 3 champs */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-medium whitespace-nowrap">Numéro de compte rendu :</span>
             <Input
               type="text"
               value={reportNumber}
               onChange={(e) => setReportNumber(e.target.value)}
-              className="bg-[#EDEBDF]"
+              className="bg-[#F6F5EB] w-20"
             />
           </div>
-        </div>
 
-        {/* Ligne 2: Date du compte rendu */}
-        <div className="flex items-center">
-          <div className="w-1/3 font-medium">Date du compte rendu :</div>
-          <div className="w-2/3">
+          <div className="flex items-center gap-2">
+            <span className="font-medium whitespace-nowrap">Date du compte rendu :</span>
             <Input
               type="date"
               value={reportDate}
               onChange={(e) => setReportDate(e.target.value)}
-              className="bg-[#EDEBDF]"
+              className="bg-[#F6F5EB] w-40"
             />
           </div>
-        </div>
 
-        {/* Ligne 3: Prochain rendez-vous sur site */}
-        <div className="flex items-center">
-          <div className="w-1/3 font-medium">Prochain rendez-vous sur site :</div>
-          <div className="w-2/3">
+          <div className="flex items-center gap-2">
+            <span className="font-medium whitespace-nowrap">Prochain rendez-vous sur site :</span>
             <Input
               type="date"
               value={nextMeetingDate}
               onChange={(e) => setNextMeetingDate(e.target.value)}
-              className="bg-[#EDEBDF]"
+              className="bg-[#F6F5EB] w-40"
             />
           </div>
         </div>
@@ -128,7 +185,7 @@ export function DetTableSection({ projectId = "project-1", lots = [] }: DetTable
                     type="text"
                     value={participant.name}
                     onChange={(e) => handleParticipantChange(participant.id, "name", e.target.value)}
-                    className="bg-[#EDEBDF]"
+                    className="bg-[#F6F5EB]"
                   />
                 </div>
                 <div className="w-[20%] pr-2">
@@ -136,7 +193,7 @@ export function DetTableSection({ projectId = "project-1", lots = [] }: DetTable
                     type="text"
                     value={participant.role}
                     onChange={(e) => handleParticipantChange(participant.id, "role", e.target.value)}
-                    className="bg-[#EDEBDF]"
+                    className="bg-[#F6F5EB]"
                   />
                 </div>
                 <div className="w-[25%] pr-2">
@@ -144,7 +201,7 @@ export function DetTableSection({ projectId = "project-1", lots = [] }: DetTable
                     type="text"
                     value={participant.address}
                     onChange={(e) => handleParticipantChange(participant.id, "address", e.target.value)}
-                    className="bg-[#EDEBDF]"
+                    className="bg-[#F6F5EB]"
                     placeholder="Adresse"
                   />
                 </div>
@@ -153,7 +210,7 @@ export function DetTableSection({ projectId = "project-1", lots = [] }: DetTable
                     type="text"
                     value={participant.contact}
                     onChange={(e) => handleParticipantChange(participant.id, "contact", e.target.value)}
-                    className="bg-[#EDEBDF]"
+                    className="bg-[#F6F5EB]"
                     placeholder="Contact"
                   />
                 </div>
@@ -179,7 +236,7 @@ export function DetTableSection({ projectId = "project-1", lots = [] }: DetTable
           <Textarea
             value={observationsGenerales}
             onChange={(e) => setObservationsGenerales(e.target.value)}
-            className="w-full mt-2 bg-[#EDEBDF]"
+            className="w-full mt-2 bg-[#F6F5EB]"
             rows={4}
             placeholder="Saisissez vos observations générales ici..."
           />
@@ -191,12 +248,20 @@ export function DetTableSection({ projectId = "project-1", lots = [] }: DetTable
 
           {lots && lots.length > 0 ? (
             <div className="space-y-0">
-              {lots.map((lot, index) => (
-                <div key={lot.id}>
-                  <LotObservations lot={lot} projectId={projectId} />
-                  {index < lots.length - 1 && <div className="border-b border-gray-300 my-4"></div>}
-                </div>
-              ))}
+              {lots.map((lot, index) => {
+                const companyName = getCompanyNameForLot(lot.id)
+                const lotWithCompany = {
+                  ...lot,
+                  displayName: companyName ? `${lot.name} - ${companyName}` : lot.name,
+                }
+
+                return (
+                  <div key={lot.id}>
+                    <LotObservations lot={lotWithCompany} projectId={projectId} />
+                    {index < lots.length - 1 && <div className="border-b border-gray-300 my-4"></div>}
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <div className="text-gray-500 italic">
